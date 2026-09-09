@@ -1,0 +1,35 @@
+# Raw corpora only — processed + checkpoints ARE committed for jury demos
+data/raw/
+data/processed_all/
+data/hapt_strict_v1/
+data/HAPT/
+data/hapt_strict/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.eggs/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Env / secrets
+.env
+.env.*
+venv/
+.venv/
+.venv_demo/
+
+# macOS / IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Local regenerations / logs
+results/regenerate_figures.log
+*.predictions.npz
+
+# Documentation / mémoire (kept out of jury code repo)
+docs/

@@ -1,0 +1,29 @@
+{
+  "accuracy": 0.7904903417533432,
+  "macro_f1": 0.42301780388578886,
+  "protocol_id": "9c7424c55c6b4158a40ed163f659255644fa533beab3ec55e13b1fb00eec37b9",
+  "temporal": {
+    "obs_ratio": 0.5,
+    "seq_len": 5,
+    "horizon_samples": 50,
+    "stride": 75
+  },
+  "n_examples": 1346,
+  "macro_f1_labels": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+  ],
+  "majority_macro_f1": 0.037591100882240124,
+  "actual_horizon_seconds_min": 3.0,
+  "actual_horizon_seconds_max": 3.0
+}

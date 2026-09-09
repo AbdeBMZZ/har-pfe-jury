@@ -1,0 +1,182 @@
+{
+  "1": {
+    "dataset": "hapt",
+    "local_id": 1,
+    "slug": "hapt-1"
+  },
+  "2": {
+    "dataset": "hapt",
+    "local_id": 2,
+    "slug": "hapt-2"
+  },
+  "3": {
+    "dataset": "hapt",
+    "local_id": 3,
+    "slug": "hapt-3"
+  },
+  "4": {
+    "dataset": "hapt",
+    "local_id": 4,
+    "slug": "hapt-4"
+  },
+  "5": {
+    "dataset": "hapt",
+    "local_id": 5,
+    "slug": "hapt-5"
+  },
+  "6": {
+    "dataset": "hapt",
+    "local_id": 6,
+    "slug": "hapt-6"
+  },
+  "7": {
+    "dataset": "hapt",
+    "local_id": 7,
+    "slug": "hapt-7"
+  },
+  "8": {
+    "dataset": "hapt",
+    "local_id": 8,
+    "slug": "hapt-8"
+  },
+  "9": {
+    "dataset": "hapt",
+    "local_id": 9,
+    "slug": "hapt-9"
+  },
+  "10": {
+    "dataset": "hapt",
+    "local_id": 10,
+    "slug": "hapt-10"
+  },
+  "11": {
+    "dataset": "hapt",
+    "local_id": 11,
+    "slug": "hapt-11"
+  },
+  "12": {
+    "dataset": "hapt",
+    "local_id": 12,
+    "slug": "hapt-12"
+  },
+  "13": {
+    "dataset": "hapt",
+    "local_id": 13,
+    "slug": "hapt-13"
+  },
+  "14": {
+    "dataset": "hapt",
+    "local_id": 14,
+    "slug": "hapt-14"
+  },
+  "15": {
+    "dataset": "hapt",
+    "local_id": 15,
+    "slug": "hapt-15"
+  },
+  "16": {
+    "dataset": "hapt",
+    "local_id": 16,
+    "slug": "hapt-16"
+  },
+  "17": {
+    "dataset": "hapt",
+    "local_id": 17,
+    "slug": "hapt-17"
+  },
+  "18": {
+    "dataset": "hapt",
+    "local_id": 18,
+    "slug": "hapt-18"
+  },
+  "19": {
+    "dataset": "hapt",
+    "local_id": 19,
+    "slug": "hapt-19"
+  },
+  "20": {
+    "dataset": "hapt",
+    "local_id": 20,
+    "slug": "hapt-20"
+  },
+  "21": {
+    "dataset": "hapt",
+    "local_id": 21,
+    "slug": "hapt-21"
+  },
+  "22": {
+    "dataset": "hapt",
+    "local_id": 22,
+    "slug": "hapt-22"
+  },
+  "23": {
+    "dataset": "hapt",
+    "local_id": 23,
+    "slug": "hapt-23"
+  },
+  "24": {
+    "dataset": "hapt",
+    "local_id": 24,
+    "slug": "hapt-24"
+  },
+  "25": {
+    "dataset": "hapt",
+    "local_id": 25,
+    "slug": "hapt-25"
+  },
+  "26": {
+    "dataset": "hapt",
+    "local_id": 26,
+    "slug": "hapt-26"
+  },
+  "27": {
+    "dataset": "hapt",
+    "local_id": 27,
+    "slug": "hapt-27"
+  },
+  "28": {
+    "dataset": "hapt",
+    "local_id": 28,
+    "slug": "hapt-28"
+  },
+  "29": {
+    "dataset": "hapt",
+    "local_id": 29,
+    "slug": "hapt-29"
+  },
+  "30": {
+    "dataset": "hapt",
+    "local_id": 30,
+    "slug": "hapt-30"
+  },
+  "31": {
+    "dataset": "wisdm",
+    "local_id": 1,
+    "slug": "wisdm-1"
+  },
+  "32": {
+    "dataset": "wisdm",
+    "local_id": 2,
+    "slug": "wisdm-2"
+  },
+  "33": {
+    "dataset": "wisdm",
+    "local_id": 3,
+    "slug": "wisdm-3"
+  },
+  "34": {
+    "dataset": "wisdm",
+    "local_id": 4,
+    "slug": "wisdm-4"
+  },
+  "35": {
+    "dataset": "wisdm",
+    "local_id": 5,
+    "slug": "wisdm-5"
+  },
+  "36": {
+    "dataset": "wisdm",
+    "local_id": 6,
+    "slug": "wisdm-6"
+  }
+}

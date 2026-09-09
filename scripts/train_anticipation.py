@@ -1,0 +1,100 @@
+"""
+Train and evaluate the activity anticipation head (Module 2).
+
+Usage:
+    python scripts/train_anticipation.py \
+        --data data/processed \
+        --checkpoint checkpoints/pretrained.pt \
+        --epochs 50 --out_dir checkpoints
+"""
+
+import argparse, sys, numpy as np
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from src.data.homogenization   import load_processed
+from src.data.har_dataset      import HARDataset
+from src.data.anticipation_dataset import build_anticipation_datasets
+from src.models.har_model      import build_model
+from src.training.anticipation_trainer import (
+    train_anticipation, print_anticipation_summary)
+
+
+def get_device():
+    import torch
+    if torch.cuda.is_available():   return "cuda"
+    if torch.backends.mps.is_available(): return "mps"
+    return "cpu"
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data",       default="data/processed")
+    parser.add_argument("--checkpoint", default="checkpoints/pretrained.pt")
+    parser.add_argument("--out_dir",    default="checkpoints")
+    parser.add_argument("--epochs",     type=int,   default=50)
+    parser.add_argument("--batch_size", type=int,   default=64)
+    parser.add_argument("--lr",         type=float, default=5e-4)
+    parser.add_argument("--seq_len",    type=int,   default=5,
+                        help="Number of consecutive windows as context")
+    parser.add_argument("--truncate_from", default="end",
+                        choices=["end", "start"],
+                        help="Keep last (end) or first (start) p%% of window")
+    parser.add_argument("--no_class_weights", action="store_true",
+                        help="Disable inverse-frequency CE class weights")
+    args = parser.parse_args()
+
+    import torch
+    device = get_device()
+    print(f"Device: {device}")
+
+    # Load data
+    X, y, subjects, origins = load_processed(args.data)
+    ds = HARDataset(X, y, subjects, origins)
+    print(ds.summary())
+
+    n_classes = int(y.max()) + 1
+
+    # Build model and load pretrained backbone
+    model = build_model(n_classes=n_classes)
+    ckpt  = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
+    backbone_state = {
+        k.removeprefix("backbone."): v
+        for k, v in ckpt["model_state"].items()
+        if k.startswith("backbone.")
+    }
+    model.backbone.load_state_dict(backbone_state)
+    print(f"Backbone loaded from {args.checkpoint}")
+
+    # transitions_only=True: predict activity CHANGES
+    # truncate_from=end: keep last p% (transition cues often late in window)
+    print(f"\nBuilding anticipation datasets "
+          f"(transitions only, truncate_from={args.truncate_from})...")
+    ant_datasets = build_anticipation_datasets(
+        X, y, subjects=subjects, test_ratio=0.2, seq_len=args.seq_len,
+        transitions_only=True, truncate_from=args.truncate_from)
+
+    for ratio, (tr, va) in ant_datasets.items():
+        print(f"  p={ratio:.2f}: train={len(tr)}, val={len(va)}")
+
+    results = train_anticipation(
+        model, ant_datasets,
+        n_epochs=args.epochs,
+        batch_size=args.batch_size,
+        lr=args.lr,
+        device=device,
+        use_class_weights=not args.no_class_weights,
+        n_classes=n_classes,
+    )
+
+    print_anticipation_summary(results)
+
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    model.save(str(out_dir / "anticipation.pt"))
+    np.save(str(out_dir / "anticipation_results.npy"), results)
+    print(f"Saved to {out_dir}/anticipation.pt")
+
+
+if __name__ == "__main__":
+    main()
