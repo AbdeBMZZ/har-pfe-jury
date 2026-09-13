@@ -1,0 +1,21 @@
+{
+  "accuracy": 0.6924219910846954,
+  "macro_f1": 0.5023415881487713,
+  "weighted_f1": 0.7095408976839379,
+  "method": "blend_comp_agg_soft",
+  "blend": {
+    "comp": 0.0,
+    "agg": 0.5,
+    "soft": 0.5
+  },
+  "val_macro_f1": 0.4604726075393748,
+  "val_accuracy": 0.6982017200938233,
+  "protocol_id": "9c7424c55c6b4158a40ed163f659255644fa533beab3ec55e13b1fb00eec37b9",
+  "temporal": {
+    "obs_ratio": 0.5,
+    "seq_len": 5,
+    "horizon_samples": 50,
+    "stride": 75
+  },
+  "n_examples": 1346
+}

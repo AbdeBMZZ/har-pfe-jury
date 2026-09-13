@@ -1,0 +1,21 @@
+{
+  "accuracy": 0.6723625557206538,
+  "macro_f1": 0.5158469811418435,
+  "weighted_f1": 0.7042207949569814,
+  "protocol_id": "9c7424c55c6b4158a40ed163f659255644fa533beab3ec55e13b1fb00eec37b9",
+  "temporal": {
+    "obs_ratio": 0.5,
+    "seq_len": 5,
+    "horizon_samples": 50,
+    "stride": 75
+  },
+  "n_examples": 1346,
+  "method": "compromise_hybrid",
+  "val": {
+    "accuracy": 0.6544175136825645,
+    "macro_f1": 0.4445136902503281,
+    "weighted_f1": 0.6950648641510428
+  },
+  "min_val_acc": 0.72,
+  "init": "hapt_anticipation_p50_softw.pt"
+}

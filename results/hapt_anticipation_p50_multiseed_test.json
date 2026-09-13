@@ -1,0 +1,22 @@
+{
+  "accuracy": 0.6701337295690936,
+  "macro_f1": 0.5107390652466529,
+  "weighted_f1": 0.6992318214437253,
+  "seed": 2,
+  "power": 0.65,
+  "ce_coef": 0.68,
+  "val": {
+    "accuracy": 0.6583268178264269,
+    "macro_f1": 0.4356094616907446,
+    "weighted_f1": 0.6862000215593594
+  },
+  "method": "multiseed_compromise",
+  "protocol_id": "9c7424c55c6b4158a40ed163f659255644fa533beab3ec55e13b1fb00eec37b9",
+  "temporal": {
+    "obs_ratio": 0.5,
+    "seq_len": 5,
+    "horizon_samples": 50,
+    "stride": 75
+  },
+  "n_examples": 1346
+}

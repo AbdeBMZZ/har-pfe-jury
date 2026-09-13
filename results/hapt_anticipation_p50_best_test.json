@@ -1,0 +1,16 @@
+{
+  "accuracy": 0.6530460624071323,
+  "macro_f1": 0.49299989399179966,
+  "weighted_f1": 0.6855657639390121,
+  "macro_main6": 0.8498272965561119,
+  "macro_trans6": 0.1361724914274874,
+  "protocol_id": "9c7424c55c6b4158a40ed163f659255644fa533beab3ec55e13b1fb00eec37b9",
+  "temporal": {
+    "obs_ratio": 0.5,
+    "seq_len": 5,
+    "horizon_samples": 50,
+    "stride": 75
+  },
+  "n_examples": 1346,
+  "method": "ensemble_route"
+}

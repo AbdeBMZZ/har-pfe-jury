@@ -72,31 +72,61 @@ def main():
         return DataLoader(TensorDataset(torch.from_numpy(X), torch.from_numpy(y.astype(np.int64))),
                           batch_size=args.batch_size, shuffle=shuffle)
     forward = model if args.stage == 'recognition' else model.anticipate
+    # Optional 7-class anticipation: merge HAPT postural transitions 7-12 -> 7.
+    merge7 = bool(checkpoint and checkpoint.get('label_protocol') == '7class_transitions_merged')
+    f1_labels = list(range(1, 8)) if merge7 else list(range(1, 13))
+
+    def _maybe_merge(y):
+        y = np.asarray(y, dtype=np.int64).copy()
+        if merge7:
+            y[y >= 7] = 7
+        return y
+
     def evaluate(split):
         model.eval()
         predictions = []
         with torch.no_grad():
             for X, _ in loader(split):
-                predictions.extend(forward(X.to(args.device)).argmax(-1).cpu().tolist())
-        y = datasets[split][1]
+                logits = forward(X.to(args.device))
+                if merge7:
+                    logits = logits.clone()
+                    logits[:, 8:] = -1e4
+                predictions.extend(logits.argmax(-1).cpu().tolist())
+        y = _maybe_merge(datasets[split][1])
+        predictions = _maybe_merge(predictions)
         return dict(accuracy=float(accuracy_score(y, predictions)),
-                    macro_f1=float(f1_score(y, predictions, labels=list(range(1, 13)), average='macro', zero_division=0)))
+                    macro_f1=float(f1_score(y, predictions, labels=f1_labels, average='macro', zero_division=0)))
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     if args.stage == 'test':
         scores = evaluate('test')
-        y = datasets['test'][1]
+        y = _maybe_merge(datasets['test'][1])
         scores.update(protocol_id=manifest['protocol_id'], temporal=temporal, n_examples=len(y),
-            macro_f1_labels=list(range(1, 13)),
-            majority_macro_f1=float(f1_score(y, np.full(len(y), checkpoint['majority_label']),
-                labels=list(range(1, 13)), average='macro', zero_division=0)),
+            macro_f1_labels=f1_labels,
+            label_protocol=('7class_transitions_merged' if merge7 else '12class_hapt'),
+            majority_macro_f1=float(f1_score(y, np.full(len(y), _maybe_merge([checkpoint['majority_label']])[0]),
+                labels=f1_labels, average='macro', zero_division=0)),
             actual_horizon_seconds_min=float(horizons.min()), actual_horizon_seconds_max=float(horizons.max()))
         Path(args.out).write_text(json.dumps(scores, indent=2))
         print(json.dumps(scores, indent=2)); return
+    class_weight = None
     if args.stage == 'anticipation':
         for parameter in model.parameters():
             parameter.requires_grad = False
         for parameter in model.anticipation_head.parameters():
             parameter.requires_grad = True
+        # Soft median-frequency weights: sqrt scaling + clip (avoids rare-class collapse).
+        y_train = datasets['train'][1].astype(np.int64)
+        counts = np.bincount(y_train, minlength=13).astype(np.float64)
+        weights = np.zeros(13, dtype=np.float64)
+        present = counts > 0
+        med = np.median(counts[present])
+        weights[present] = np.sqrt(med / counts[present])
+        weights[present] = np.clip(weights[present], 0.4, 2.5)
+        weights[present] /= weights[present].mean()
+        class_weight = torch.tensor(weights, dtype=torch.float32, device=args.device)
+        print(f'Class weights (soft): present={int(present.sum())} '
+              f'min={weights[present].min():.3f} max={weights[present].max():.3f}',
+              flush=True)
     optimizer = torch.optim.AdamW([v for v in model.parameters() if v.requires_grad], lr=1e-3)
     best_score, best_state, history = -1, None, []
     for epoch in range(args.epochs):
@@ -105,7 +135,15 @@ def main():
             model.backbone.eval()
         for X, y in loader('train', True):
             optimizer.zero_grad()
-            loss = torch.nn.functional.cross_entropy(forward(X.to(args.device)), y.to(args.device))
+            logits = forward(X.to(args.device))
+            targets = y.to(args.device)
+            ce = torch.nn.functional.cross_entropy(logits, targets)
+            if class_weight is None:
+                loss = ce
+            else:
+                # Hybrid loss: keep accuracy on frequent classes while lifting rare ones.
+                wce = torch.nn.functional.cross_entropy(logits, targets, weight=class_weight)
+                loss = 0.65 * ce + 0.35 * wce
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.)
             optimizer.step()
@@ -117,7 +155,9 @@ def main():
     torch.save(dict(model=best_state, stage=args.stage, protocol_id=manifest['protocol_id'],
         train_subjects=manifest['splits']['train'], mean=mean.tolist(), std=std.tolist(),
         temporal=temporal, history=history, arguments=vars(args),
-        majority_label=int(np.bincount(datasets['train'][1]).argmax())), args.out)
+        majority_label=int(np.bincount(datasets['train'][1]).argmax()),
+        class_weights=(None if class_weight is None else class_weight.detach().cpu().tolist())),
+        args.out)
 
 
 if __name__ == '__main__':

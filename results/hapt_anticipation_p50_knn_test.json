@@ -1,0 +1,19 @@
+{
+  "accuracy": 0.563150074294205,
+  "macro_f1": 0.46367603223908455,
+  "weighted_f1": 0.6120548914292271,
+  "macro_main6": 0.7715427400220806,
+  "macro_trans6": 0.1558093244560887,
+  "val_macro_f1": 0.3971036413121864,
+  "k": 1,
+  "nbal": 300,
+  "method": "knn_cosine",
+  "protocol_id": "9c7424c55c6b4158a40ed163f659255644fa533beab3ec55e13b1fb00eec37b9",
+  "temporal": {
+    "obs_ratio": 0.5,
+    "seq_len": 5,
+    "horizon_samples": 50,
+    "stride": 75
+  },
+  "n_examples": 1346
+}
