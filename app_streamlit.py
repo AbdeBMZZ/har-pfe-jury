@@ -400,6 +400,7 @@ page = st.sidebar.radio(
     "Scénario de démonstration",
     [
         "🏠 Accueil",
+        "🧭 Pipeline (brut → résultats)",
         "1️⃣ Reconnaissance",
         "2️⃣ Nouvel utilisateur (Karim)",
         "3️⃣ Anticipation",
@@ -466,23 +467,26 @@ if page == "🏠 Accueil":
                 unsafe_allow_html=True)
 
     explain(
-        "<b>Pipeline complet :</b><br>"
+        "<b>Parcours recommandé :</b> page <b>Pipeline</b> "
+        "(données brutes → stockage → modèle → scores), "
+        "puis démos live 1 → 2 → 3.<br><br>"
+        "<b>Flux modèle :</b><br>"
         "<code>X (150×6)</code> → <code>IMUTransformerEncoder</code> → embedding (128 dim)<br>"
-        "→ <code>ContinualHARHead</code> : softmax (pretrain) ou <code>PrototypeMemory</code> (démo)<br>"
-        "→ <code>AnticipationHead</code> (LSTM) pour prédire la fenêtre suivante"
+        "→ <code>ContinualHARHead</code> : softmax (pretrain) ou <code>PrototypeMemory</code><br>"
+        "→ Anticipation (causale v2 / LSTM) pour la fenêtre future"
     )
 
-    c1, c2, c3, c4 = st.columns(4)
+    c0, c1, c2, c3 = st.columns(4)
+    with c0:
+        st.info("**0 — Pipeline**\n\nBrut → fenêtres → ckpt.")
     with c1:
         st.info("**1 — Reconnaissance**\n\nTransformer + prototypes.")
     with c2:
         st.success("**2 — Continual**\n\nNouvel utilisateur sans retrain.")
     with c3:
-        st.warning("**3 — Anticipation**\n\nProchaine activité (F1 ~0.60).")
-    with c4:
-        st.error("**4 — Fall-risk**\n\nAlerte équilibre (F1 ~0.88).")
+        st.warning("**3 — Anticipation**\n\nv2 / LSTM (scores JSON).")
 
-    st.markdown("Pages **5** (calibration + RL) et **6** (SSL / foundation-style) complètent la fiche PFE.")
+    st.markdown("Pages **4–6** (fall-risk, calibration, SSL) en option selon le temps.")
     st.caption(meal_status())
 
     with st.expander("📖 Composants du modèle (har_model.py)"):
@@ -498,6 +502,12 @@ if page == "🏠 Accueil":
 | `OnlineCalibrator` | `online_calibration.py` | Temperature + seuil |
 | `ThresholdBandit` | `rl_threshold_agent.py` | RL léger sur seuil d'alerte |
         """)
+
+elif page == "🧭 Pipeline (brut → résultats)":
+    import importlib
+    import src.ui.pipeline_panel as pipeline_panel
+    importlib.reload(pipeline_panel)
+    pipeline_panel.render()
 
 elif page == "1️⃣ Reconnaissance":
     st.markdown("## Démo 1 — Reconnaissance d'activité")
