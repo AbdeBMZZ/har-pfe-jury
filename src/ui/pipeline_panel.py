@@ -1,4 +1,4 @@
-"""Plain-language walkthrough of the full HAR pipeline."""
+"""Parcours expérimental du pipeline HAR — présentation visuelle et académique."""
 from __future__ import annotations
 
 import json
@@ -17,17 +17,17 @@ PROCESSED = ROOT / "data" / "processed"
 STRICT = ROOT / "data" / "hapt_strict_v1"
 
 STEPS = [
-    {"key": "story", "title": "De quoi parle ce projet ?"},
+    {"key": "story", "title": "Objectifs du système"},
     {"key": "raw", "title": "1 · Données brutes IMU"},
-    {"key": "clean", "title": "2 · Nettoyer le signal"},
-    {"key": "windows", "title": "3 · Couper en petits morceaux"},
-    {"key": "store", "title": "4 · Où on range tout ça"},
-    {"key": "strict", "title": "5 · Règles d’évaluation propres"},
-    {"key": "model", "title": "6 · Le « cerveau » du système"},
-    {"key": "reco", "title": "7 · Reconnaître l’activité"},
-    {"key": "cl", "title": "8 · Apprendre un nouvel utilisateur"},
-    {"key": "ant", "title": "9 · Anticiper la suite"},
-    {"key": "scores", "title": "10 · Les scores obtenus"},
+    {"key": "clean", "title": "2 · Prétraitement du signal"},
+    {"key": "windows", "title": "3 · Fenêtrage temporel"},
+    {"key": "store", "title": "4 · Stockage processed"},
+    {"key": "strict", "title": "5 · Protocole d'évaluation strict"},
+    {"key": "model", "title": "6 · Architecture du modèle"},
+    {"key": "reco", "title": "7 · Reconnaissance d'activité"},
+    {"key": "cl", "title": "8 · Apprentissage continu"},
+    {"key": "ant", "title": "9 · Anticipation"},
+    {"key": "scores", "title": "10 · Résultats expérimentaux"},
 ]
 
 CSS = """
@@ -128,6 +128,33 @@ CSS = """
 .timeline .cell {
   background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:8px 6px; text-align:center; color:#334155;
 }
+.code-ref {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: .78rem;
+  line-height: 1.55;
+  color: #334155;
+  background: #f1f5f9;
+  border-left: 4px solid #2563eb;
+  border-radius: 0 10px 10px 0;
+  padding: 10px 14px;
+  margin: .55rem 0 1rem 0;
+}
+.code-ref-t {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #2563eb;
+  margin-bottom: 6px;
+}
+.code-ref code {
+  background: #e2e8f0;
+  color: #0f172a;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: .76rem;
+}
 </style>
 """
 
@@ -153,13 +180,13 @@ def _plot_raw(acc, gyro, n=400):
     for i, lab in enumerate("xyz"):
         axes[0].plot(t, acc[:n, i], color=cols[i], lw=1.2, label=lab)
         axes[1].plot(t, gyro[:n, i], color=cols[i], lw=1.2, label=lab)
-    axes[0].set_ylabel("Mouvement\n(accélération)")
-    axes[1].set_ylabel("Rotation\n(gyroscope)")
-    axes[1].set_xlabel("Temps (secondes)")
+    axes[0].set_ylabel("Accélération\n(m/s²)")
+    axes[1].set_ylabel("Gyroscope\n(rad/s)")
+    axes[1].set_xlabel("Temps (s)")
     axes[0].legend(ncols=3, frameon=False, fontsize=9, loc="upper right")
     for ax in axes:
         _style(ax)
-    fig.suptitle("Ce que le téléphone enregistre pendant 8 secondes", color="#0b3d6e", fontsize=12, y=1.02)
+    fig.suptitle("Signaux IMU bruts — extrait de 8 s (exp01, user01)", color="#0b3d6e", fontsize=12, y=1.02)
     plt.tight_layout()
     return fig
 
@@ -170,7 +197,11 @@ def _plot_windows():
     sig = np.sin(2 * np.pi * 0.35 * t) + 0.12 * rng.normal(size=t.size)
     fig, ax = plt.subplots(figsize=(10.5, 2.5), facecolor="white")
     ax.plot(t, sig, color="#cbd5e1", lw=1.1)
-    for start, color, name in [(0, "#0b3d6e", "morceau 1"), (1.5, "#0f766e", "morceau 2"), (3, "#c2410c", "morceau 3")]:
+    for start, color, name in [
+        (0, "#0b3d6e", "fenêtre 1"),
+        (1.5, "#0f766e", "fenêtre 2"),
+        (3, "#c2410c", "fenêtre 3"),
+    ]:
         m = (t >= start) & (t < start + 3)
         ax.fill_between(t[m], -1.8, 1.8, color=color, alpha=0.16)
         ax.plot(t[m], sig[m], color=color, lw=2)
@@ -178,9 +209,9 @@ def _plot_windows():
     ax.set_xlim(0, 8)
     ax.set_ylim(-2, 2)
     ax.set_yticks([])
-    ax.set_xlabel("Temps (secondes)")
+    ax.set_xlabel("Temps (s)")
     _style(ax)
-    ax.set_title("On découpe le long enregistrement en morceaux de 3 secondes", color="#0b3d6e", fontsize=12)
+    ax.set_title("Fenêtrage glissant — durée 3 s, pas de 1,5 s (chevauchement 50 %)", color="#0b3d6e", fontsize=12)
     plt.tight_layout()
     return fig
 
@@ -247,6 +278,13 @@ def _simple(t):
     st.markdown(f'<div class="simple">{t}</div>', unsafe_allow_html=True)
 
 
+def _code(funcs_html: str):
+    st.markdown(
+        f'<div class="code-ref"><div class="code-ref-t">Implémentation</div>{funcs_html}</div>',
+        unsafe_allow_html=True,
+    )
+
+
 def render() -> None:
     st.markdown(CSS, unsafe_allow_html=True)
     if "pipe_step" not in st.session_state:
@@ -269,7 +307,10 @@ def render() -> None:
     step = STEPS[idx]
     pct = int(100 * (idx + 1) / len(STEPS))
 
-    st.markdown('<div class="k">Comprendre le système · étape par étape</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="k">Pipeline HAR · présentation du parcours expérimental</div>',
+        unsafe_allow_html=True,
+    )
     st.markdown(f'<div class="t">{step["title"]}</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="bar-wrap"><div class="bar" style="width:{pct}%"></div></div>', unsafe_allow_html=True)
     _nav(idx, where="top")
@@ -279,118 +320,114 @@ def render() -> None:
 
     if key == "story":
         _idea(
-            "<b>En une phrase :</b> une montre ou un téléphone mesure les mouvements. "
-            "Notre programme apprend à dire <i>ce que la personne fait</i>, "
-            "à s’adapter à <i>une nouvelle personne</i>, "
-            "et parfois à <i>deviner ce qui va suivre</i>."
+            "<b>Objectif :</b> à partir de mesures inertielles (montre ou téléphone), "
+            "le système reconnaît <i>l'activité en cours</i>, "
+            "s'adapte à <i>un nouvel utilisateur</i>, "
+            "et peut <i>anticiper l'activité future</i>."
         )
-        _h("Les 3 capacités")
+        _h("Trois capacités")
         _simple(
-            "<b>1. Reconnaître</b> — « là, la personne marche ».<br>"
-            "<b>2. S’adapter</b> — un nouvel utilisateur arrive ; on apprend son style sans tout recommencer.<br>"
-            "<b>3. Anticiper</b> — « avec ce qu’on voit maintenant, la suite ressemble à… »."
+            "<b>1. Reconnaissance</b> — identification de l'activité courante (ex. marche).<br>"
+            "<b>2. Adaptation</b> — intégration d'un nouvel utilisateur sans réentraînement complet.<br>"
+            "<b>3. Anticipation</b> — prédiction de l'activité à venir à partir du contexte observé."
         )
         st.markdown(
             """
 <div class="flow">
-  <div class="node">Mouvement</div><div class="ar">→</div>
-  <div class="node">Nettoyage</div><div class="ar">→</div>
-  <div class="node">Petits morceaux</div><div class="ar">→</div>
+  <div class="node">Capteur IMU</div><div class="ar">→</div>
+  <div class="node">Prétraitement</div><div class="ar">→</div>
+  <div class="node">Fenêtres</div><div class="ar">→</div>
   <div class="node">Modèle</div><div class="ar">→</div>
-  <div class="node">Réponse</div>
+  <div class="node">Décision</div>
 </div>
 """,
             unsafe_allow_html=True,
         )
-        _p("Les prochaines étapes suivent exactement ce chemin, dans l’ordre.")
+        _code("<code>build_model</code> · <code>src/models/har_model.py</code>")
+        _p("Les étapes suivantes détaillent ce parcours dans l'ordre expérimental.")
 
     elif key == "raw":
-        # —— Schéma 1 : capture ——
         st.markdown(
             """
 <div class="schema">
-  <div class="schema-title">Ce qu’on capture</div>
+  <div class="schema-title">Chaîne d'acquisition</div>
   <div class="schema-row">
-    <div class="schema-card"><div class="ic">👤</div><strong>Personne</strong><span>activités du quotidien</span></div>
+    <div class="schema-card"><div class="ic">👤</div><strong>Sujet</strong><span>activités de la vie quotidienne</span></div>
     <div class="schema-plus">→</div>
-    <div class="schema-card"><div class="ic">📱</div><strong>IMU</strong><span>acc + gyro</span></div>
+    <div class="schema-card"><div class="ic">📱</div><strong>IMU</strong><span>accéléromètre + gyroscope</span></div>
     <div class="schema-plus">→</div>
-    <div class="schema-card"><div class="ic">📊</div><strong>Séries temporelles</strong><span>+ labels d’activité</span></div>
+    <div class="schema-card"><div class="ic">📊</div><strong>Séries temporelles</strong><span>+ annotations d'activité</span></div>
   </div>
 </div>
 """,
             unsafe_allow_html=True,
         )
 
-        # —— Schéma 2 : 6 canaux ——
         st.markdown(
             """
 <div class="schema">
-  <div class="schema-title">Pourquoi 6 canaux ?</div>
+  <div class="schema-title">Six canaux inertiels</div>
   <div class="schema-row">
     <div class="schema-card acc">
       <div class="ic">↕️</div>
       <strong>Accélération ×3</strong>
-      <span>X Y Z<br>translations / secousses<br><b>utile pour la marche</b></span>
+      <span>axes X, Y, Z<br>translations<br><b>discriminant pour la locomotion</b></span>
     </div>
     <div class="schema-plus">+</div>
     <div class="schema-card gyro">
       <div class="ic">🔄</div>
       <strong>Gyroscope ×3</strong>
-      <span>X Y Z<br>rotations<br><b>utile pour les transitions</b></span>
+      <span>axes X, Y, Z<br>rotations<br><b>discriminant pour les transitions</b></span>
     </div>
   </div>
-  <div class="schema-eq">on colle les deux → <span>(temps × 6)</span></div>
+  <div class="schema-eq">concaténation → <span>(T × 6)</span></div>
 </div>
 """,
             unsafe_allow_html=True,
         )
 
-        # —— Schéma 3 : 50 Hz ——
         st.markdown(
             """
 <div class="schema">
-  <div class="schema-title">Pourquoi 50 mesures / seconde (50 Hz) ?</div>
+  <div class="schema-title">Fréquence d'échantillonnage</div>
   <div class="schema-row">
     <div class="schema-card lab">
       <strong>10 Hz</strong>
-      <span>trop lent<br>on rate les transitions</span>
+      <span>insuffisant<br>transitions mal résolues</span>
     </div>
     <div class="schema-card" style="border-color:#0b3d6e;background:#0b3d6e;color:#fff">
       <strong style="color:#fff">50 Hz ✓</strong>
-      <span style="color:#dbeafe">1 mesure / 20 ms<br>assez pour marche & postures<br>standard HAPT</span>
+      <span style="color:#dbeafe">1 échantillon / 20 ms<br>adapté à marche & postures<br>standard HAPT</span>
     </div>
     <div class="schema-card lab">
       <strong>200 Hz</strong>
-      <span>trop lourd<br>peu de gain ici</span>
+      <span>coût élevé<br>gain limité ici</span>
     </div>
   </div>
-  <div class="schema-eq">mouvements utiles ≈ <span>10–20 Hz</span> → 50 Hz suffit</div>
+  <div class="schema-eq">bande utile ≈ <span>10–20 Hz</span> → 50 Hz suffit</div>
 </div>
 """,
             unsafe_allow_html=True,
         )
 
-        # —— Schéma 4 : fichiers ——
         st.markdown(
             """
 <div class="schema">
-  <div class="schema-title">3 fichiers bruts</div>
+  <div class="schema-title">Fichiers bruts HAPT</div>
   <div class="schema-row">
-    <div class="schema-card acc"><strong>acc_….txt</strong><span>mouvement x y z</span></div>
+    <div class="schema-card acc"><strong>acc_….txt</strong><span>accélération x y z</span></div>
     <div class="schema-card gyro"><strong>gyro_….txt</strong><span>rotation x y z</span></div>
-    <div class="schema-card lab"><strong>labels.txt</strong><span>activité entre start → end</span></div>
+    <div class="schema-card lab"><strong>labels.txt</strong><span>activité [start → end]</span></div>
   </div>
 </div>
 """,
             unsafe_allow_html=True,
         )
 
-        # —— Schéma 5 : label row ——
         st.markdown(
             """
 <div class="schema">
-  <div class="schema-title">Lecture d’une ligne de labels.txt</div>
+  <div class="schema-title">Structure d'une annotation (labels.txt)</div>
   <div class="timeline">
     <div class="hd"></div><div class="hd">exp</div><div class="hd">user</div><div class="hd">activité</div><div class="hd">intervalle</div>
     <div class="tag">ex.</div>
@@ -402,11 +439,10 @@ def render() -> None:
             unsafe_allow_html=True,
         )
 
-        # —— Schéma 6 : 12 classes ——
         st.markdown(
             """
 <div class="schema">
-  <div class="schema-title">12 activités HAPT</div>
+  <div class="schema-title">Douze classes HAPT</div>
   <div class="chip-grid">
     <div class="chip"><b>1 · 2 · 3</b>marche / escaliers ↑ ↓</div>
     <div class="chip"><b>4 · 5 · 6</b>assis / debout / allongé</div>
@@ -417,70 +453,112 @@ def render() -> None:
             unsafe_allow_html=True,
         )
 
+        _code(
+            "<code>load_hapt()</code> · <code>src/data/dataset_loaders.py</code><br>"
+            "<code>scripts/fetch_hapt_raw.py</code>"
+        )
+
         if raw is None:
-            st.warning("Fichiers bruts introuvables.")
+            st.warning("Fichiers bruts introuvables dans les chemins candidats.")
         else:
-            acc = np.loadtxt(raw / "acc_exp01_user01.txt")
-            gyro = np.loadtxt(raw / "gyro_exp01_user01.txt")
+            acc_path = raw / "acc_exp01_user01.txt"
+            gyro_path = raw / "gyro_exp01_user01.txt"
+            labels_path = raw / "labels.txt"
+            acc_lines = acc_path.read_text().splitlines()[:5]
+            gyro_lines = gyro_path.read_text().splitlines()[:5]
+            label_lines = labels_path.read_text().splitlines()[:5]
+
+            _h("Extraits des fichiers bruts")
+            c_acc, c_gyro, c_lab = st.columns(3)
+            with c_acc:
+                st.caption("acc_exp01_user01.txt — 5 premières lignes")
+                st.code("\n".join(acc_lines), language=None)
+            with c_gyro:
+                st.caption("gyro_exp01_user01.txt — 5 premières lignes")
+                st.code("\n".join(gyro_lines), language=None)
+            with c_lab:
+                st.caption("labels.txt — 5 premières lignes")
+                st.code("\n".join(label_lines), language=None)
+
+            acc = np.loadtxt(acc_path)
+            gyro = np.loadtxt(gyro_path)
             c1, c2, c3, c4 = st.columns(4)
             c1.metric("Fréquence", "50 Hz")
             c2.metric("Canaux", "6")
             c3.metric("Durée (exp01)", f"{len(acc)/50:.0f} s")
-            c4.metric("Mesures", f"{len(acc):,}")
+            c4.metric("Échantillons", f"{len(acc):,}")
             st.pyplot(_plot_raw(acc, gyro), clear_figure=True)
+            st.markdown('<div class="path">data/raw/hapt/RawData/</div>', unsafe_allow_html=True)
 
     elif key == "clean":
         _idea(
-            "<b>Analogie :</b> avant de lire un message, on enlève le bruit de fond. "
-            "Ici on « nettoie » le signal pour que le modèle voie le mouvement utile."
+            "<b>Principe :</b> avant l'apprentissage, le signal est homogénéisé et filtré "
+            "afin de conserver le mouvement utile et d'atténuer les composantes parasites "
+            "(gravité, dérives, hétérogénéité des unités)."
         )
-        _h("Ce qu’on fait")
+        _h("Opérations de prétraitement")
         _simple(
-            "<b>1. Aligner</b> — même unité, même rythme (50 Hz) si on mélange plusieurs sources.<br>"
-            "<b>2. Filtrer</b> — atténuer les très lentes dérives (ex. la gravité qui tire toujours vers le bas) "
-            "pour mieux voir le vrai geste.<br>"
-            "<b>3. Version « evaluation propre »</b> — le filtre ne regarde <b>que le passé</b> "
-            "(important si on veut anticiper le futur : on n’a pas le droit de tricher en regardant demain)."
+            "<b>1. Homogénéisation</b> — unités et fréquence unifiées (50 Hz) pour fusionner plusieurs sources.<br>"
+            "<b>2. Filtrage</b> — atténuation des composantes très lentes (ex. gravité) "
+            "pour mettre en évidence le geste dynamique.<br>"
+            "<b>3. Filtrage causal</b> — le filtre n'utilise que le passé "
+            "(condition nécessaire pour une anticipation sans fuite temporelle)."
         )
-        _p("Résultat : un signal plus clair, prêt à être découpé.")
+        _code(
+            "<code>preprocess_signal</code>, <code>remove_gravity</code>, "
+            "<code>resample_signal</code>, <code>convert_g_to_ms2</code> · "
+            "<code>src/data/preprocessing.py</code><br>"
+            "<code>homogenize_sample</code> · <code>src/data/homogenization.py</code><br>"
+            "<code>causal_imu</code> · <code>src/data/temporal_protocol.py</code>"
+        )
+        _p("Résultat : un signal aligné, prêt pour le fenêtrage.")
 
     elif key == "windows":
         _idea(
-            "<b>Analogie :</b> on ne donne pas un film de 20 minutes d’un coup au modèle. "
-            "On lui donne des <b>extraits de 3 secondes</b>, comme des clips courts."
+            "<b>Principe :</b> une série longue n'est pas présentée en une seule pièce au modèle. "
+            "Elle est découpée en <b>fenêtres de 3 s</b> (150 échantillons × 6 canaux), "
+            "chacune associée à une étiquette d'activité."
         )
-        _h("Pourquoi 3 secondes ?")
+        _h("Choix de la durée")
         _simple(
-            "Assez long pour voir « ah, c’est de la marche ».<br>"
-            "Assez court pour éviter qu’un seul clip mélange marche + assis + autre chose."
+            "Assez longue pour caractériser une activité stable (ex. marche).<br>"
+            "Assez courte pour limiter le mélange d'activités distinctes dans une même fenêtre."
         )
-        _h("Pourquoi les clips se chevauchent ?")
+        _h("Chevauchement")
         _simple(
-            "Si on coupe sans chevauchement, un changement d’activité peut tomber pile entre deux clips "
-            "et être mal vu. On avance d’<b>1,5 s</b> à chaque fois (chevauchement 50 %) "
-            "pour mieux couvrir les transitions."
+            "Sans chevauchement, une transition peut tomber entre deux fenêtres. "
+            "Un pas de <b>1,5 s</b> (chevauchement 50 %) améliore la couverture des changements d'état."
         )
         st.pyplot(_plot_windows(), clear_figure=True)
-        _p("Chaque clip devient un exemple d’apprentissage : <b>le signal + le nom de l’activité</b>.")
+        _code(
+            "<code>sliding_windows_with_labels</code> · <code>src/data/preprocessing.py</code><br>"
+            "<code>recording_windows</code> · <code>src/data/temporal_protocol.py</code>"
+        )
+        _p("Chaque fenêtre constitue un exemple d'apprentissage : signal + label.")
         c1, c2, c3 = st.columns(3)
-        c1.metric("Durée d’un clip", "3 s")
-        c2.metric("Taille", "150 × 6")
-        c3.metric("Avance", "1,5 s")
+        c1.metric("Durée", "3 s")
+        c2.metric("Forme", "150 × 6")
+        c3.metric("Pas", "1,5 s")
 
     elif key == "store":
         _idea(
-            "<b>Analogie :</b> après le montage des clips, on ne garde pas les rushes bruts ouverts. "
-            "On sauvegarde une bibliothèque propre prête à l’emploi."
+            "<b>Principe :</b> après prétraitement et fenêtrage, les tenseurs sont sérialisés "
+            "dans <code>data/processed/</code> pour un chargement rapide (entraînement, évaluation, démonstration)."
         )
-        _h("Dossier data/processed/")
+        _h("Contenu de data/processed/")
         _simple(
-            "<b>X</b> — tous les clips de mouvement.<br>"
-            "<b>y</b> — l’activité de chaque clip.<br>"
-            "<b>subjects</b> — qui a produit le clip (personne 1, 2, 3…).<br>"
-            "<b>origins</b> — de quel jeu de données ça vient.<br>"
-            "<b>subject_meta.json</b> — carnet d’adresses des personnes (ex. « Karim »)."
+            "<b>X.npy</b> — fenêtres de mouvement.<br>"
+            "<b>y.npy</b> — labels d'activité.<br>"
+            "<b>subjects.npy</b> — identifiants des sujets.<br>"
+            "<b>origins.npy</b> — jeu de données d'origine.<br>"
+            "<b>subject_meta.json</b> — métadonnées des sujets."
         )
-        _p("Intérêt : ouvrir la démo ou lancer un entraînement sans tout recalculer depuis les fichiers texte.")
+        _code(
+            "<code>build_unified_dataset</code>, <code>save_processed</code>, "
+            "<code>load_processed</code> · <code>src/data/homogenization.py</code><br>"
+            "<code>scripts/preprocess.py</code>"
+        )
+        _p("Intérêt : relancer une expérience sans recalculer toute la chaîne depuis les fichiers texte.")
         if (PROCESSED / "X.npy").exists():
             X = np.load(PROCESSED / "X.npy", mmap_mode="r")
             y = np.load(PROCESSED / "y.npy")
@@ -488,190 +566,225 @@ def render() -> None:
             origins = np.load(PROCESSED / "origins.npy")
             left, right = st.columns([1.55, 1])
             with left:
-                st.pyplot(_plot_window(X[12], "Un clip déjà stocké (3 secondes)"), clear_figure=True)
+                st.pyplot(
+                    _plot_window(X[12], "Exemple de fenêtre stockée (3 s, 6 canaux)"),
+                    clear_figure=True,
+                )
             with right:
-                st.metric("Nombre de clips", f"{len(X):,}")
-                st.metric("Personnes", f"{len(np.unique(subjects))}")
+                st.metric("Fenêtres", f"{len(X):,}")
+                st.metric("Sujets", f"{len(np.unique(subjects))}")
                 uniq, counts = np.unique(origins.astype(str), return_counts=True)
-                st.bar_chart({"clips": dict(zip(uniq.tolist(), [int(c) for c in counts]))}, height=160)
-            st.markdown(f'<div class="path">{PROCESSED.resolve()}</div>', unsafe_allow_html=True)
+                st.bar_chart({"fenêtres": dict(zip(uniq.tolist(), [int(c) for c in counts]))}, height=160)
+            st.markdown('<div class="path">data/processed/</div>', unsafe_allow_html=True)
 
     elif key == "strict":
         _idea(
-            "<b>Analogie :</b> pour un examen, on ne fait pas réviser avec les mêmes questions que le contrôle. "
-            "Ici : les personnes du test ne sont <b>pas</b> celles de l’entraînement."
+            "<b>Principe :</b> l'évaluation sépare strictement les sujets "
+            "(entraînement / validation / test) et impose un traitement causal, "
+            "afin d'éviter la fuite d'information et de garantir des scores reproductibles."
         )
-        _h("Pourquoi ces règles ?")
+        _h("Garanties du protocole")
         _simple(
-            "<b>Séparer les personnes</b> — sinon le système « reconnaît Marie » au lieu d’apprendre la marche en général.<br>"
-            "<b>Ne pas regarder le futur</b> dans le nettoyage — sinon l’anticipation triche.<br>"
-            "<b>Garder l’ordre du temps</b> — pour anticiper, la suite doit vraiment arriver <i>après</i> ce qu’on a vu.<br>"
-            "<b>Empreinte du protocole</b> — on sait exactement avec quelles règles un score a été calculé."
+            "<b>Partition par sujet</b> — les personnes du test n'apparaissent pas en entraînement.<br>"
+            "<b>Filtrage causal</b> — aucune information future dans le prétraitement.<br>"
+            "<b>Ordre temporel</b> — pour l'anticipation, la cible est effectivement postérieure au contexte.<br>"
+            "<b>Empreinte du protocole</b> — chaque checkpoint est lié aux règles d'évaluation utilisées."
+        )
+        _code(
+            "<code>scripts/prepare_hapt_protocol.py</code><br>"
+            "<code>save_protocol</code>, <code>load_protocol</code>, "
+            "<code>subject_partition</code>, <code>validate_checkpoint</code> · "
+            "<code>src/data/temporal_protocol.py</code>"
         )
         if STRICT.exists():
             proto = json.loads((STRICT / "protocol.json").read_text())
             Xs = np.load(STRICT / "X.npy", mmap_mode="r")
             splits = proto.get("splits", {})
             c1, c2, c3, c4 = st.columns(4)
-            c1.metric("Clips", f"{Xs.shape[0]:,}")
-            c2.metric("Personnes train", len(splits.get("train", [])))
-            c3.metric("Personnes val", len(splits.get("validation", [])))
-            c4.metric("Personnes test", len(splits.get("test", [])))
-            st.markdown(f'<div class="path">{STRICT.resolve()}</div>', unsafe_allow_html=True)
-        _p("C’est ce protocole qui sert aux <b>scores officiels</b> reconnaissance / anticipation.")
+            c1.metric("Fenêtres", f"{Xs.shape[0]:,}")
+            c2.metric("Sujets train", len(splits.get("train", [])))
+            c3.metric("Sujets val", len(splits.get("validation", [])))
+            c4.metric("Sujets test", len(splits.get("test", [])))
+            st.markdown('<div class="path">data/hapt_strict_v1/</div>', unsafe_allow_html=True)
+        _p("Ce protocole sert aux scores officiels de reconnaissance et d'anticipation.")
 
     elif key == "model":
         _idea(
-            "<b>Analogie :</b> le modèle est un étudiant. "
-            "D’abord il lit le clip (compréhension), ensuite il répond à la question "
-            "(quelle activité ? / que va-t-il se passer ?)."
+            "<b>Architecture :</b> un encodeur transforme chaque fenêtre en représentation latente ; "
+            "des têtes spécialisées produisent la reconnaissance d'activité et, le cas échéant, l'anticipation."
         )
         st.markdown(
             """
 <div class="arch">
-  <div class="box"><strong>Clip 3 s</strong><span>mouvement mesuré</span></div>
+  <div class="box"><strong>Fenêtre 3 s</strong><span>signal IMU (T×6)</span></div>
   <div class="aa">→</div>
-  <div class="box mid"><strong>Encodeur</strong><span>« comprend » le geste</span></div>
+  <div class="box mid"><strong>Encodeur</strong><span>représentation latente</span></div>
   <div class="aa">→</div>
   <div>
-    <div class="box out" style="min-height:42px;margin-bottom:8px"><strong>Reconnaître</strong><span>maintenant</span></div>
-    <div class="box out" style="min-height:42px"><strong>Anticiper</strong><span>plus tard</span></div>
+    <div class="box out" style="min-height:42px;margin-bottom:8px"><strong>Reconnaissance</strong><span>activité courante</span></div>
+    <div class="box out" style="min-height:42px"><strong>Anticipation</strong><span>activité future</span></div>
   </div>
 </div>
 """,
             unsafe_allow_html=True,
         )
-        _h("Deux façons de « se souvenir » des activités")
+        _h("Deux mécanismes de décision")
         _simple(
-            "<b>Classique</b> — une grille de scores (softmax) apprise pendant l’entraînement.<br>"
-            "<b>Prototypes</b> — pour chaque activité, on garde un « portrait-robot » moyen du geste. "
-            "Pour décider : on regarde quel portrait ressemble le plus au clip actuel. "
-            "Pratique pour ajouter une nouvelle personne sans tout reconstruire."
+            "<b>Classifieur softmax</b> — scores de classes appris pendant le pré-entraînement.<br>"
+            "<b>Mémoire de prototypes</b> — un centroïde par activité ; "
+            "la décision suit la similarité au prototype le plus proche. "
+            "Utile pour intégrer un nouvel utilisateur sans reconstruire tout le modèle."
+        )
+        _code(
+            "<code>build_model</code>, <code>HARContinualModel</code> · "
+            "<code>src/models/har_model.py</code><br>"
+            "<code>IMUTransformerEncoder</code>, <code>ContinualHARHead</code>, "
+            "<code>AnticipationHead</code> · <code>src/models/backbone.py</code>"
         )
 
     elif key == "reco":
         _idea(
-            "<b>Question posée au système :</b> « Regarde ces 3 secondes. "
-            "Qu’est-ce que la personne est en train de faire ? »"
+            "<b>Tâche :</b> à partir d'une fenêtre de 3 s, "
+            "prédire l'activité réalisée par le sujet à l'instant considéré."
         )
-        _h("Comment ça se passe")
+        _h("Pipeline d'inférence")
         _simple(
-            "1. On prend un clip déjà nettoyé.<br>"
-            "2. L’encodeur en fait un résumé compact.<br>"
-            "3. On compare aux activités connues (ou on lit la grille de scores).<br>"
-            "4. On affiche l’activité la plus probable : marche, assis, etc."
+            "1. Chargement d'une fenêtre prétraitée.<br>"
+            "2. Encodage en représentation compacte.<br>"
+            "3. Décision via softmax ou <code>PrototypeMemory.predict</code>.<br>"
+            "4. Affichage de l'activité la plus probable."
         )
-        _h("Qualité sur le test")
+        _code(
+            "<code>pretrain</code> · <code>src/training/trainer.py</code><br>"
+            "<code>scripts/run_hapt_protocol.py --stage recognition</code><br>"
+            "<code>PrototypeMemory.predict</code>"
+        )
+        _h("Performances sur le jeu de test")
         st.markdown(
             """
 <div class="sg">
-  <div class="sc a"><div class="v">85,9%</div><div class="l">Bonnes réponses</div></div>
-  <div class="sc b"><div class="v">72,6%</div><div class="l">Équilibre entre classes</div></div>
+  <div class="sc a"><div class="v">85,9%</div><div class="l">Accuracy</div></div>
+  <div class="sc b"><div class="v">72,6%</div><div class="l">F1 macro</div></div>
   <div class="sc c"><div class="v">Live</div><div class="l">Page Reconnaissance</div></div>
 </div>
 """,
             unsafe_allow_html=True,
         )
         _simple(
-            "<b>85,9 %</b> = sur 100 clips, environ 86 sont corrects.<br>"
-            "<b>72,6 %</b> = moyenne qui traite chaque type d’activité à parts égales "
-            "(plus sévère si certaines activités sont rares)."
+            "<b>Accuracy 85,9 %</b> — proportion de fenêtres correctement classées.<br>"
+            "<b>F1 macro 72,6 %</b> — moyenne des F1 par classe "
+            "(plus exigeante lorsque certaines activités sont rares)."
         )
 
     elif key == "cl":
         _idea(
-            "<b>Problème de la vie réelle :</b> le système a appris avec Marie et Thomas. "
-            "Arrive <b>Karim</b>, qui marche un peu différemment. Que fait-on ?"
+            "<b>Contexte :</b> le modèle a été entraîné sur un ensemble de sujets. "
+            "Un nouvel utilisateur arrive avec un style moteur différent. "
+            "L'objectif est de l'intégrer sans effacer les connaissances antérieures."
         )
-        _h("Mauvaise idée")
+        _h("Écueil à éviter")
         _simple(
-            "Tout effacer et réapprendre seulement sur Karim → on <b>oublie</b> Marie et Thomas "
-            "(oubli catastrophique)."
+            "Réentraîner uniquement sur le nouvel utilisateur conduit à un "
+            "<b>oubli catastrophique</b> des sujets précédents."
         )
-        _h("Idée retenue")
+        _h("Stratégie retenue")
         _simple(
-            "On garde la « compréhension » des gestes (encodeur).<br>"
-            "On met à jour la <b>mémoire des portraits</b> (prototypes) avec quelques exemples de Karim.<br>"
-            "On peut aussi <b>revoir de vieux exemples</b> (rejeu) pour ne pas perdre l’ancien."
+            "Conservation de l'encodeur (compréhension des gestes).<br>"
+            "Mise à jour de la <b>mémoire de prototypes</b> avec quelques exemples du nouvel utilisateur.<br>"
+            "Rejeu d'exemples antérieurs (<b>ReplayBuffer</b>) pour stabiliser les performances globales."
         )
         st.markdown(
             """
 <div class="arch">
-  <div class="box"><strong>Anciens users</strong><span>déjà connus</span></div>
+  <div class="box"><strong>Sujets connus</strong><span>connaissances antérieures</span></div>
   <div class="aa">+</div>
-  <div class="box mid"><strong>Mémoire mise à jour</strong><span>sans tout recommencer</span></div>
+  <div class="box mid"><strong>Mise à jour</strong><span>prototypes + rejeu</span></div>
   <div class="aa">→</div>
-  <div class="box out"><strong>Karim inclus</strong><span>ancien savoir conservé</span></div>
+  <div class="box out"><strong>Nouvel utilisateur</strong><span>ancien savoir conservé</span></div>
 </div>
 """,
             unsafe_allow_html=True,
         )
-        st.caption("À voir en live : page « Nouvel utilisateur (Karim) ».")
+        _code(
+            "<code>continual_train</code> · <code>src/training/trainer.py</code><br>"
+            "<code>PrototypeMemory.update</code> · <code>ReplayBuffer</code><br>"
+            "<code>model.continual_step</code>"
+        )
+        st.caption("Démonstration : page « Nouvel utilisateur (Karim) ».")
 
     elif key == "ant":
         _idea(
-            "<b>Question différente :</b> on ne montre qu’une partie du mouvement "
-            "(par ex. le début), et on demande : « d’après ça, que va-t-il se passer ensuite ? »"
+            "<b>Tâche :</b> à partir d'un contexte partiel (début du mouvement), "
+            "prédire l'activité qui suivra — sans accès au futur (filtrage causal)."
         )
-        _h("Pourquoi c’est plus dur")
+        _h("Difficultés")
         _simple(
-            "Moins d’information → plus d’hésitation.<br>"
-            "Les changements de posture (assis↔debout, etc.) sont <b>rares</b> et se ressemblent → "
-            "le système se trompe plus souvent sur ces cas."
+            "Information partielle → incertitude plus élevée.<br>"
+            "Les transitions posturales sont <b>rares</b> et proches entre elles → "
+            "taux d'erreur plus important sur ces classes."
         )
-        _h("Deux façons de compter les classes")
+        _h("Granularité des classes")
         _simple(
-            "<b>12 classes</b> — on exige le détail exact de la transition "
-            "(ex. assis→allongé vs assis→debout). Très difficile → score « équilibre » plus bas (~52 %).<br><br>"
-            "<b>7 classes</b> — on garde les 6 activités stables, et on regroupe toutes les transitions "
-            "dans une seule case « transition ». Plus réaliste quand on a peu d’exemples → "
-            "meilleur équilibre (~77 %)."
+            "<b>12 classes</b> — distinction fine des transitions "
+            "(ex. assis→allongé vs assis→debout). Tâche difficile ; F1 macro plus basse (~52 %).<br><br>"
+            "<b>7 classes</b> — six activités stables + une classe « transition » regroupée. "
+            "Plus robuste avec peu d'exemples ; meilleur équilibre (~77 %)."
         )
         st.markdown(
             """
 <div class="sg">
-  <div class="sc a"><div class="v">71,8%</div><div class="l">Anticipation · bonnes réponses (7 classes)</div></div>
-  <div class="sc b"><div class="v">76,6%</div><div class="l">Anticipation · équilibre (7 classes)</div></div>
-  <div class="sc c"><div class="v">51,6%</div><div class="l">Meilleur équilibre en 12 classes</div></div>
+  <div class="sc a"><div class="v">71,8%</div><div class="l">Accuracy anticipation (7 classes)</div></div>
+  <div class="sc b"><div class="v">76,6%</div><div class="l">F1 macro anticipation (7 classes)</div></div>
+  <div class="sc c"><div class="v">51,6%</div><div class="l">Meilleur F1 macro (12 classes)</div></div>
 </div>
 """,
             unsafe_allow_html=True,
         )
-        st.caption("Démo : page Anticipation.")
+        _code(
+            "<code>TemporalAnticipationDataset</code> · <code>src/data/temporal_protocol.py</code><br>"
+            "<code>model.anticipate</code><br>"
+            "<code>scripts/train_anticipation_7class.py</code><br>"
+            "<code>anticipation_pipeline.py</code> / <code>CausalForecaster</code>"
+        )
+        st.caption("Démonstration : page Anticipation.")
 
     else:  # scores
         _idea(
-            "<b>À retenir :</b> le système marche bien pour dire ce qui se passe maintenant, "
-            "et correctement pour deviner la suite — surtout quand on ne demande pas le détail "
-            "fin des transitions rares."
+            "<b>Synthèse :</b> la reconnaissance de l'activité courante atteint un niveau élevé ; "
+            "l'anticipation reste crédible, surtout lorsque les transitions rares "
+            "sont regroupées (protocole à 7 classes)."
         )
         st.markdown(
             """
 <div class="sg">
-  <div class="sc a"><div class="v">85,9%</div><div class="l">Reconnaître maintenant</div></div>
-  <div class="sc b"><div class="v">76,6%</div><div class="l">Anticiper (7 classes)</div></div>
-  <div class="sc c"><div class="v">71,4%</div><div class="l">Autre modèle d’anticipation</div></div>
+  <div class="sc a"><div class="v">85,9%</div><div class="l">Reconnaissance (accuracy)</div></div>
+  <div class="sc b"><div class="v">76,6%</div><div class="l">Anticipation F1 (7 classes)</div></div>
+  <div class="sc c"><div class="v">71,4%</div><div class="l">Autre modèle d'anticipation</div></div>
 </div>
 """,
             unsafe_allow_html=True,
         )
-        _h("Chemin complet (résumé)")
+        _h("Parcours expérimental (résumé)")
         st.markdown(
             """
 <div class="flow">
-  <div class="node">Capteur</div><div class="ar">→</div>
-  <div class="node">Fichiers bruts</div><div class="ar">→</div>
-  <div class="node">Nettoyage</div><div class="ar">→</div>
-  <div class="node">Clips 3 s</div><div class="ar">→</div>
-  <div class="node">Stockage</div><div class="ar">→</div>
+  <div class="node">IMU</div><div class="ar">→</div>
+  <div class="node">Bruts</div><div class="ar">→</div>
+  <div class="node">Prétraitement</div><div class="ar">→</div>
+  <div class="node">Fenêtres 3 s</div><div class="ar">→</div>
+  <div class="node">Processed</div><div class="ar">→</div>
   <div class="node">Modèle</div><div class="ar">→</div>
-  <div class="node">Reco / Adapt / Anticip.</div>
+  <div class="node">Reco / CL / Ant.</div>
 </div>
 """,
             unsafe_allow_html=True,
         )
+        _code(
+            "Résultats JSON (checkpoints / logs)<br>"
+            "<code>accuracy_score</code> / <code>f1_score</code> (sklearn)"
+        )
         _simple(
-            "Ensuite, dans le menu : essayez <b>Reconnaissance</b>, puis <b>Karim</b>, puis <b>Anticipation</b>."
+            "Poursuite dans le menu : <b>Reconnaissance</b>, puis <b>Karim</b>, puis <b>Anticipation</b>."
         )
 
     st.markdown("---")
